@@ -4,8 +4,6 @@ An end-to-end churn analysis project on a bank customer dataset. Data is loaded 
 
 ## Dashboard preview
 
-![Churn Dashboard]
-
 <img width="1026" height="711" alt="Screenshot 2026-08-06 222043" src="https://github.com/user-attachments/assets/d6602cb4-2833-4308-bceb-443281c96f8a" />
 
 ## Project overview
