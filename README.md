@@ -58,7 +58,7 @@ Full pipeline in `churn_analysis.py`:
 4. **Random Forest** — outperformed the baseline, ROC-AUC 0.86
 5. **SHAP explainability** — `shap.TreeExplainer` on the Random Forest identifies `age`, `products_number`, and `active_member` as the strongest churn drivers by mean |SHAP value|. This replaces the earlier version's use of `rf.feature_importances_` (Gini importance) — SHAP gives a signed, per-prediction contribution rather than just "this feature mattered somewhere in the forest," which is what actually lets you explain an individual customer's risk score.
 6. **Business impact translation** — flags high-risk customers (churn probability ≥ 0.6 — tuned above the 0.5 default to trade some recall for meaningfully better precision on the flagged list) and quantifies total account balance at risk
-7. Outputs: `churn_predictions.csv` (every customer scored, with `customer_id`, features, probability, and prediction), `top_50_at_risk_customers.csv` (prioritized retention list), `feature_importance.csv` (SHAP-based), and `shap_feature_importance.png` (chart)
+7. Outputs: `churn_predictions_clean.csv` (every customer scored, with `customer_id`, features, probability, and prediction), `top_50_at_risk_customers.csv` (prioritized retention list), `feature_importance.csv` (SHAP-based), and `shap_feature_importance.png` (chart)
 
 ### Model results
 
@@ -80,7 +80,7 @@ Full pipeline in `churn_analysis.py`:
 - **Retention trends by age group**
 - **Top at-risk customers table** — the actionable retention list, sorted by churn probability
 
-Data source: `churn_predictions.csv` (Python model output), loaded directly — no relationships needed since it's a single flat table.
+Data source: `churn_predictions_clean.csv` (Python model output), loaded directly — no relationships needed since it's a single flat table.
 
 ## How to reproduce
 
@@ -94,7 +94,7 @@ Data source: `churn_predictions.csv` (Python model output), loaded directly — 
    pip install pandas numpy scikit-learn shap matplotlib
    python churn_analysis.py
    ```
-3. In Power BI Desktop: **Get Data → Text/CSV** → load `churn_predictions.csv` (and `top_50_at_risk_customers.csv` for the action-list table)
+3. In Power BI Desktop: **Get Data → Text/CSV** → load `churn_predictions_clean.csv` (and `top_50_at_risk_customers.csv` for the action-list table)
 4. Rebuild the visuals following the dashboard section above, or open the included `churn.pbix` directly.
 
 ## Repository contents
@@ -104,7 +104,7 @@ churn_Analysis.sql              -- schema, data load, and SQL analysis queries
 churn_analysis.py               -- EDA, feature engineering, modeling, SHAP, business impact
 churn.pbix                      -- Power BI dashboard
 README.md                       -- this file
-churn_predictions.csv           -- model output (all customers, probability + prediction)
+churn_predictions_clean.csv           -- model output (all customers, probability + prediction)
 top_50_at_risk_customers.csv    -- prioritized retention list
 feature_importance.csv          -- SHAP-based feature importance
 shap_feature_importance.png     -- SHAP summary chart
