@@ -34,11 +34,11 @@ customer_id, credit_score, country, gender, age, tenure, balance,
 products_number, credit_card, active_member, estimated_salary, churn
 ```
 
-Loaded directly into a single `customers` table via `LOAD DATA INFILE` (schema in [`Churn_Analysis.sql`](Churn_Analysis.sql)) — this dataset didn't need the multi-table normalization the Superstore project did, since it's already one row per customer with no repeating groups.
+Loaded directly into a single `customers` table via `LOAD DATA INFILE` (schema in [`churn_Analysis.sql`](churn_Analysis.sql)) — this dataset didn't need the multi-table normalization the Superstore project did, since it's already one row per customer with no repeating groups.
 
 ## SQL analysis
 
-All queries are in [`Churn_Analysis.sql`](Churn_Analysis.sql). Highlights:
+All queries are in [`churn_Analysis.sql`](churn_Analysis.sql). Highlights:
 
 - **Churn rate by country and gender** — grouped breakdown, sorted by highest churn rate, to spot which segments need attention first
 - **Top churn segment by country** — `RANK() OVER (ORDER BY SUM(churn) DESC)` to rank countries by total churned customers
@@ -56,16 +56,16 @@ Full pipeline in `churn_analysis.py`:
 2. **Feature engineering** — age buckets, has-balance flag, one-hot encoded country/gender
 3. **Baseline model**: Logistic Regression (`class_weight='balanced'` to handle the ~20% churn imbalance)
 4. **Random Forest** — outperformed the baseline, ROC-AUC 0.86
-5. **SHAP explainability** — identifies `age`, `products_number`, and `active_member` as the strongest churn drivers
-6. **Business impact translation** — flags high-risk customers (churn probability ≥ 0.5) and quantifies total account balance at risk
-7. Outputs: `churn_predictions.csv` (every customer scored, with `customer_id`, features, probability, and prediction) and `top_50_at_risk_customers.csv` (prioritized retention list)
+5. **SHAP explainability** — `shap.TreeExplainer` on the Random Forest identifies `age`, `products_number`, and `active_member` as the strongest churn drivers by mean |SHAP value|. This replaces the earlier version's use of `rf.feature_importances_` (Gini importance) — SHAP gives a signed, per-prediction contribution rather than just "this feature mattered somewhere in the forest," which is what actually lets you explain an individual customer's risk score.
+6. **Business impact translation** — flags high-risk customers (churn probability ≥ 0.6 — tuned above the 0.5 default to trade some recall for meaningfully better precision on the flagged list) and quantifies total account balance at risk
+7. Outputs: `churn_predictions.csv` (every customer scored, with `customer_id`, features, probability, and prediction), `top_50_at_risk_customers.csv` (prioritized retention list), `feature_importance.csv` (SHAP-based), and `shap_feature_importance.png` (chart)
 
 ### Model results
 
 | Model | ROC-AUC |
 |---|---|
 | Logistic Regression | 0.78 |
-| Random Forest | **0.86** |
+| Random Forest | **0.87** |
 
 ## Power BI dashboard
 
@@ -86,26 +86,28 @@ Data source: `churn_predictions.csv` (Python model output), loaded directly — 
 
 1. Load the schema and data:
    ```sql
-   mysql -u root -p < Churn_Analysis.sql
+   mysql -u root -p < churn_Analysis.sql
    ```
    (Update the `LOAD DATA INFILE` path to your local CSV location.)
 2. Run the ML pipeline:
    ```bash
-   pip install pandas scikit-learn shap matplotlib seaborn
+   pip install pandas numpy scikit-learn shap matplotlib
    python churn_analysis.py
    ```
 3. In Power BI Desktop: **Get Data → Text/CSV** → load `churn_predictions.csv` (and `top_50_at_risk_customers.csv` for the action-list table)
-4. Rebuild the visuals following the dashboard section above, or open the included `.pbix` if shared.
+4. Rebuild the visuals following the dashboard section above, or open the included `churn.pbix` directly.
 
 ## Repository contents
 
 ```
-Churn_Analysis.sql              -- schema, data load, and SQL analysis queries
+churn_Analysis.sql              -- schema, data load, and SQL analysis queries
 churn_analysis.py               -- EDA, feature engineering, modeling, SHAP, business impact
+churn.pbix                      -- Power BI dashboard
 README.md                       -- this file
-dashboard_screenshot.png        -- dashboard preview image (add your own)
 churn_predictions.csv           -- model output (all customers, probability + prediction)
 top_50_at_risk_customers.csv    -- prioritized retention list
+feature_importance.csv          -- SHAP-based feature importance
+shap_feature_importance.png     -- SHAP summary chart
 Bank Customer Churn Prediction.csv -- raw dataset
 ```
 
