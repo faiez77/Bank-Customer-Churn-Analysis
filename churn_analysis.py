@@ -18,7 +18,7 @@ plt.rcParams['figure.dpi'] = 150
 
 # =======================================================================
 # 1. LOAD DATA
-
+# =======================================================================
 df = pd.read_csv("Bank Customer Churn Prediction.csv")
 print("Shape:", df.shape)
 print("Churn Rate:", df["churn"].mean())
@@ -27,22 +27,23 @@ df_original = df.copy()
 
 # =======================================================================
 # 2. FEATURE ENGINEERING
-
+# =======================================================================
 X = df.drop(columns=["customer_id", "churn"])
 y = df["churn"]
 
+# Convert categorical -> dummy
 X = pd.get_dummies(X, columns=["country", "gender"], drop_first=True)
 
 # =======================================================================
 # 3. TRAIN/TEST SPLIT
-
+# =======================================================================
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
 # =======================================================================
 # 4. LOGISTIC REGRESSION (baseline)
-
+# =======================================================================
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
@@ -59,7 +60,7 @@ print("AUC:", roc_auc_score(y_test, y_prob_lr))
 
 # =======================================================================
 # 5. RANDOM FOREST (best model)
-
+# =======================================================================
 rf = RandomForestClassifier(
     n_estimators=200,
     max_depth=8,
@@ -83,20 +84,24 @@ print("AUC:", roc_auc_score(y_test, y_prob_rf))
 results = df_original.loc[X_test.index].copy()
 results["predicted_churn"] = y_pred_rf
 results["churn_probability"] = y_prob_rf
-results.to_csv("churn_predictions.csv", index=False)
+results.to_csv("churn_predictions_clean.csv", index=False)
 
 # =======================================================================
 # 6. TOP 50 HIGH-RISK CUSTOMERS
-
+# =======================================================================
 top_50 = results.sort_values(by="churn_probability", ascending=False).head(50)
 top_50.to_csv("top_50_at_risk_customers.csv", index=False)
 
 # =======================================================================
 # 7. SHAP EXPLAINABILITY
-
+# =======================================================================
 explainer = shap.TreeExplainer(rf)
 shap_values = explainer.shap_values(X_test)
 
+# shap_values shape varies by SHAP version: a list [class_0, class_1]
+# in older versions, or a single (n_samples, n_features, n_classes)
+# array in newer ones. Normalize to a 2D (n_samples, n_features) array
+# for the positive class (churn = 1) either way.
 if isinstance(shap_values, list):
     sv = shap_values[1]
 elif shap_values.ndim == 3:
@@ -123,14 +128,14 @@ print("Saved: shap_feature_importance.png")
 
 # =======================================================================
 # 8. BUSINESS IMPACT
-
+# =======================================================================
 high_risk = results[results["churn_probability"] >= threshold]
 balance_at_risk = high_risk["balance"].sum()
 print(f"\nCustomers flagged high-risk (p >= {threshold}): {len(high_risk)}")
 print(f"Total account balance at risk: {balance_at_risk:,.2f}")
 
 print("\nFiles generated:")
-print("1. churn_predictions.csv")
+print("1. churn_predictions_clean.csv")
 print("2. top_50_at_risk_customers.csv")
-print("3. feature_importance.csv (SHAP-based, not Gini importance)")
+print("3. feature_importance.csv (SHAP-based)")
 print("4. shap_feature_importance.png")
